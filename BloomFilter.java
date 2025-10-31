@@ -1,6 +1,6 @@
 /******************************************************************
  *
- *   YOUR NAME / SECTION NUMBER
+ *   Arthur Heredia / COMP 272 002 F25
  *
  *   Note, additional comments provided throughout source code is
  *   for educational purposes.
@@ -15,7 +15,7 @@ import java.security.SecureRandom;
 import java.lang.Math;
 
 
-/**
+/*
  * Bloom Filters
  *
  * A Bloom filter is an implementation of a set which allows a certain 
@@ -213,18 +213,41 @@ class BloomFilter {
      * false if not in the set, else true if most probably in the set.
      *
      * @param boolean - false if not in set, else true for most probably in set
+     *
+     * -----------------------------------------------------------------------------------------------------------------
+     *
+     * Pseudocode:
+     *
+     * 1. For each hash function index (from 0 to noHashes - 1):
+     *      a. Compute the hash code for the string using hashCode(s, n)
+     *      b. Use bit masking to determine the bit position
+     *      c. Check if that bit position is set in the BitSet 'data'
+     *
+     * 2. If any bit position is not set, return false
+     *
+     * 3. If all bits are set, return true
+     *
      */
 
     public boolean contains(String s) {
+        // 1. Iterate through each hash function index
+        for (int n = 0; n < noHashes; n++) {
 
-        // ADD YOUR CODE HERE - DO NOT FORGET TO ADD YOUR NAME AT TOP OF FILE
-        //
-        // HINT: the bitmap is the private class variable 'data', and it is
-        // of type BitSet (Java class BitSet). See Oracle documentation for
-        // this class on available methods. You can also see how method 'add'
-        // in this class uses the object.
+            // 1a. Compute the hash code for this hash function number
+            long hc = hashCode(s, n);
 
-        return false;
+            // 1b. Determine which bit position this hash maps to
+            int bitNo = (int) (hc) & this.hashMask;
+
+            // 1c. Check if that bit is set in the BitSet 'data'
+            if (!data.get(bitNo)) {
+                // 2. If even one bit is not set, the element was never added
+                return false;
+            }
+        }
+
+        // 3. All required bits were set — likely present (possible false positive)
+        return true;
     }
 
 

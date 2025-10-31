@@ -1,6 +1,6 @@
 /******************************************************************
  *
- *   YOUR NAME / SECTION NUMBER
+ *   Arthur Heredia / COMP 272 002 F25
  *
  *   Note, additional comments provided throughout this source code
  *   is for educational purposes
@@ -13,8 +13,7 @@ import java.util.List;
 import java.util.Set;
 import java.lang.Math;
 
-
-/**
+/*
  * Cuckoo Hashing Exercise
  *
  * Cuckoo hashing is a scheme for resolving hash collisions of keys in 
@@ -53,8 +52,7 @@ public class CuckooHash<K, V> {
 	private Bucket<K, V>[] table;			// Hashmap table
 	private int a = 37, b = 17;				// Constants used in h2(key)
 
-
-	/**
+	/*
 	 * Class Bucket
 	 *
 	 * Inner bucket class which represents a <key,value> pair 
@@ -83,7 +81,6 @@ public class CuckooHash<K, V> {
 
 	}
 
-
 	/*
 	 * Hash functions, hash1 and hash2
 	 */
@@ -91,7 +88,7 @@ public class CuckooHash<K, V> {
 	private int hash2(K key) 	{ return (a * b + Math.abs(key.hashCode())) % CAPACITY; }
 
 
-	/**
+	/*
 	 * Method CuckooHash
 	 *
 	 * Constructor that initializes and sets the hashmap. A future 
@@ -107,8 +104,7 @@ public class CuckooHash<K, V> {
 		table = new Bucket[CAPACITY];
 	}						  
 
-
-	/**
+	/*
 	 * Method size
 	 *
 	 * Get the number of elements in the table; the time complexity is O(n).
@@ -125,8 +121,7 @@ public class CuckooHash<K, V> {
 		return count;
 	}
 
-
-	/**
+	/*
 	 * Method clear
 	 *
 	 * Removes all elements in the table, it does not rest the size of 
@@ -140,8 +135,7 @@ public class CuckooHash<K, V> {
 
 	public int mapSize() { return CAPACITY; }    // used in external testing only
 
-
-	/**
+	/*
 	 * Method values
 	 *
 	 * Get a list containing of all values in the table
@@ -159,8 +153,7 @@ public class CuckooHash<K, V> {
 		return allValues;
 	}
 
-
-	/**
+	/*
 	 * Method keys
 	 *
 	 * Get a set containing all the keys in the table
@@ -178,8 +171,7 @@ public class CuckooHash<K, V> {
 		return allKeys;
 	}
 
-
-	/**
+	/*
 	 * Method put
 	 *
 	 * Adds a key-value pair to the table by means of cuckoo hashing. 
@@ -242,19 +234,80 @@ public class CuckooHash<K, V> {
 	 *
 	 * @param key the key of the element to add
      * @param value the value of the element to add
-	 */
+     *
+     * -----------------------------------------------------------------------------------------------------------------
+     *
+     * Pseudocode:
+     *
+     * 1. Compute positions using hash1(key) and hash2(key)
+     * 2. If the exact <key,value> pair already exists in either position,
+     *    return to prevent duplicates
+     * 3. Create a new Bucket with the given <key,value>
+     * 4. Start at position hash1(key)
+     * 5. For up to CAPACITY iterations:
+     *      a. If current position is empty, insert and return
+     *      b. Otherwise, kick out the current occupant
+     *      c. Move the evicted bucket to its alternate hash position
+     * 6. If CAPACITY shuffles occur without finding an empty slot,
+     *    assume a cycle and call rehash()
+     * 7. Recursively insert the leftover element after rehash
+     *
+     */
 
- 	public void put(K key, V value) {
+    public void put(K key, V value) {
+        // 1. Compute both hash positions for this key
+        int pos1 = hash1(key);
+        int pos2 = hash2(key);
 
-		// ADD YOUR CODE HERE - DO NOT FORGET TO ADD YOUR NAME AT TOP OF FILE.
-		// Also make sure you read this method's prologue above, it should help
-		// you. Especially the two HINTS in the prologue.
+        // 2. Check for an exact duplicate <key,value> pair
+        if (table[pos1] != null && table[pos1].getBucKey().equals(key)
+                && table[pos1].getValue().equals(value)) {
+            return; // Duplicate <key,value> found
+        }
+        if (table[pos2] != null && table[pos2].getBucKey().equals(key)
+                && table[pos2].getValue().equals(value)) {
+            return; // Duplicate <key,value> found
+        }
 
-		return;
-	}
+        // 3. Create the new bucket for insertion
+        Bucket<K, V> currentBucket = new Bucket<>(key, value);
 
+        // 4. Always start inserting at the h1(key) location
+        int currentPos = hash1(key);
 
-	/**
+        // 5. Attempt to insert, moving up to CAPACITY times
+        for (int i = 0; i < CAPACITY; i++) {
+            // 5a. If this position is empty, place the bucket and return
+            if (table[currentPos] == null) {
+                table[currentPos] = currentBucket;
+                return; // Insertion successful
+            }
+
+            // 5b. If occupied, kick out the existing bucket
+            Bucket<K, V> temp = table[currentPos];
+            table[currentPos] = currentBucket;
+            currentBucket = temp; // Now the evicted bucket must be relocated
+
+            // 5c. Compute the alternate hash position for the kicked bucket
+            int h1 = hash1(currentBucket.getBucKey());
+            int h2 = hash2(currentBucket.getBucKey());
+
+            // Move to the other hash position
+            currentPos = (currentPos == h1) ? h2 : h1;
+        }
+
+        // 6. If we've reached CAPACITY shuffles, assume a cycle
+        K leftoverKey = currentBucket.getBucKey();
+        V leftoverValue = currentBucket.getValue();
+
+        // Grow and rehash the table to break the cycle
+        rehash();
+
+        // 7. Recursively insert the leftover <key,value> after rehashing
+        put(leftoverKey, leftoverValue);
+    }
+
+    /*
 	 * Method get
 	 *
 	 * Retrieve a value in O(1) time based on the key because it can only 
@@ -275,7 +328,7 @@ public class CuckooHash<K, V> {
 	}
 
 
-	/**
+	/*
 	 * Method remove
 	 *
 	 * Removes this key value pair from the table. Its time complexity 
@@ -285,6 +338,7 @@ public class CuckooHash<K, V> {
 	 * @param value the value to remove
 	 * @return successful removal
 	 */
+
 	public boolean remove(K key, V value) {
 		int pos1 = hash1(key);
 		int pos2 = hash2(key);
@@ -300,7 +354,7 @@ public class CuckooHash<K, V> {
 	}
 
 
-	/**
+	/*
 	 * Method printTable
 	 *
 	 * The method will prepare a String representation of the table of 
@@ -328,7 +382,7 @@ public class CuckooHash<K, V> {
 	}
 
 
-	/**
+	/*
 	 * Method rehash
 	 *
 	 * This method regrows the hashtable to capacity: 2*old capacity + 1 
